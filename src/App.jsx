@@ -107,10 +107,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen p-3 md:p-6 flex flex-col justify-between relative overflow-hidden selection:bg-cyan-500 selection:text-black">
-      {/* Background Cyber Scanlines */}
-      <div className="scanline-overlay pointer-events-none" />
-
+    <div className="min-h-screen p-3 md:p-6 flex flex-col justify-between relative overflow-hidden selection:bg-emerald-500 selection:text-white">
       {/* Main Container */}
       <div className="max-w-[1600px] w-full mx-auto flex flex-col flex-1 z-10">
         {/* Top Header HUD */}
@@ -126,10 +123,11 @@ export default function App() {
 
         {/* Main Workstation Layout */}
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
-          {/* Left Column: Camera Feed & Voice Controller (5 cols) */}
+          {/* Left Column: Camera Feed with Vision AI & Voice Controller (5 cols) */}
           <div className="lg:col-span-5 flex flex-col gap-4">
             <CameraHUD 
               arOverlayType={currentStep.arOverlayType}
+              currentStepId={currentStep.id}
               onCapturePhoto={handleCapturePhoto}
               isMicActive={isMicActive}
             />
@@ -170,13 +168,13 @@ export default function App() {
             />
 
             {/* Bottom Workstation Bar */}
-            <div className="cyber-panel p-4 flex flex-wrap items-center justify-between gap-3 border-t border-cyan-500/30">
+            <div className="cyber-panel p-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsGalleryOpen(true)}
                   className="cyber-btn cyber-btn-secondary text-xs flex items-center gap-1.5"
                 >
-                  <FolderCheck className="w-4 h-4 text-cyan-400" />
+                  <FolderCheck className="w-4 h-4 text-emerald-400" />
                   <span>REGISTRO FOTOGRÁFICO ({photos.length})</span>
                 </button>
 
@@ -195,7 +193,7 @@ export default function App() {
 
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
                 <Sparkles className="w-4 h-4 animate-pulse" />
-                <span>ASSISTENTE VIVA-VOZ E IA CONSULTOR ATIVOS</span>
+                <span>VISÃO COMPUTACIONAL IA & ANÁLISE AO VIVO ATIVAS</span>
               </div>
             </div>
           </div>

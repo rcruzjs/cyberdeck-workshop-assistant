@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles } from 'lucide-react';
+import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles, Scan, AlertTriangle, Cpu } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
+import { analyzeLiveVisionFrame } from '../services/geminiVisionService';
+import { speechService } from '../services/speechService';
 
-export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
+export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicActive }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const micCanvasRef = useRef(null);
@@ -11,6 +13,8 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
   const [hasCamera, setHasCamera] = useState(true);
   const [cameraError, setCameraError] = useState(null);
   const [showAROverlay, setShowAROverlay] = useState(true);
+  const [isVisionAIScanning, setIsVisionAIScanning] = useState(true);
+  const [visionAnalysis, setVisionAnalysis] = useState(null);
   const [flashEffect, setFlashEffect] = useState(false);
   const [lastSnap, setLastSnap] = useState(null);
 
@@ -47,6 +51,46 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       }
     };
   }, []);
+
+  // Continuous Live Vision AI Scanner (Runs every 3 seconds)
+  useEffect(() => {
+    let timer = null;
+
+    const runVisionScan = async () => {
+      if (!isVisionAIScanning) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      if (hasCamera && videoRef.current) {
+        ctx.drawImage(videoRef.current, 0, 0, 640, 360);
+      } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 640, 360);
+      }
+
+      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const analysis = await analyzeLiveVisionFrame(frameDataUrl, currentStepId);
+      setVisionAnalysis(analysis);
+
+      // If an error or correction is detected, speak correction voice guidance automatically!
+      if (analysis && analysis.correctionRequired) {
+        soundFX.playAlert();
+        speechService.speak(analysis.instruction);
+      }
+    };
+
+    if (isVisionAIScanning) {
+      runVisionScan();
+      timer = setInterval(runVisionScan, 3500);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isVisionAIScanning, currentStepId, hasCamera]);
 
   // Setup Microphone Visualizer Spectrum Canvas
   useEffect(() => {
@@ -101,7 +145,7 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
     };
   }, [isMicActive]);
 
-  // Render Clean AR Overlay graphics
+  // Render Clean AR Overlay graphics + Vision AI Bounding Box
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -118,7 +162,7 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       const h = canvas.height;
       const now = Date.now() * 0.002;
 
-      // Base Reticle Crosshair - Minimalist thin lines
+      // Base Reticle Crosshair
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -136,90 +180,38 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       ctx.lineTo(w / 2, h / 2 + 45);
       ctx.stroke();
 
-      // Step-Specific AR Overlays
-      if (arOverlayType === 'VALVE_SEARCH') {
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2 + 40, 45, 0, Math.PI * 2);
-        ctx.stroke();
+      // Render Dynamic Vision AI Bounding Box & Status Overlay
+      if (visionAnalysis && visionAnalysis.boundingBox) {
+        const { x, y, width, height } = visionAnalysis.boundingBox;
+        const isError = visionAnalysis.correctionRequired;
 
-        ctx.fillStyle = '#10b981';
-        ctx.font = '500 13px Outfit, sans-serif';
-        ctx.fillText('Alvo AR: Enquadrar Válvula', w / 2 - 80, h / 2 - 55);
-      } 
-      else if (arOverlayType === 'VALVE_UNSCREW') {
-        ctx.save();
-        ctx.translate(w / 2, h / 2);
-        ctx.rotate(now * 2);
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, 40, 0, Math.PI * 1.5);
-        ctx.stroke();
-        ctx.restore();
+        // Bounding Box stroke style based on status
+        ctx.strokeStyle = isError ? '#f43f5e' : '#10b981';
+        ctx.lineWidth = isError ? 3 : 2;
 
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = '500 13px Outfit, sans-serif';
-        ctx.fillText('Desrosquear Porca Presta (Anti-horário)', w / 2 - 110, h / 2 - 60);
-      }
-      else if (arOverlayType === 'PUMP_ATTACH') {
-        const arrowY = h / 2 - 35 + Math.sin(now * 4) * 8;
-        ctx.strokeStyle = '#06b6d4';
-        ctx.fillStyle = '#06b6d4';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(w / 2, arrowY);
-        ctx.lineTo(w / 2, arrowY + 35);
-        ctx.lineTo(w / 2 - 12, arrowY + 22);
-        ctx.moveTo(w / 2, arrowY + 35);
-        ctx.lineTo(w / 2 + 12, arrowY + 22);
-        ctx.stroke();
+        if (isError && Math.floor(Date.now() / 300) % 2 === 0) {
+          ctx.strokeStyle = '#f59e0b'; // flashing alert
+        }
 
-        ctx.font = '500 13px Outfit, sans-serif';
-        ctx.fillText('Encaixar Bico da Bomba e Travar Alavanca', w / 2 - 125, h / 2 - 70);
-      }
-      else if (arOverlayType === 'PSI_GAUGE') {
-        const startAngle = Math.PI * 0.85;
-        const endAngle = Math.PI * 2.15;
-        const currentAngle = startAngle + (endAngle - startAngle) * (0.5 + Math.sin(now) * 0.2);
+        ctx.strokeRect(x, y, width, height);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 60, startAngle, endAngle);
-        ctx.stroke();
+        // Bounding Box Label
+        ctx.fillStyle = isError ? '#f43f5e' : '#10b981';
+        ctx.fillRect(x, y - 24, width, 24);
 
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 60, startAngle, currentAngle);
-        ctx.stroke();
-
-        const psiVal = Math.round(30 + (currentAngle - startAngle) * 45);
-        ctx.fillStyle = '#10b981';
-        ctx.font = '600 20px Outfit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${psiVal} PSI`, w / 2, h / 2 + 6);
-        ctx.textAlign = 'left';
-      }
-      else if (arOverlayType === 'VALVE_LOCK' || arOverlayType === 'TIRE_CHECK') {
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 70, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = '#10b981';
-        ctx.font = '500 14px Outfit, sans-serif';
-        ctx.fillText('✓ Vedação e Pressão Validadas', w / 2 - 95, h / 2 - 80);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 11px Inter, sans-serif';
+        const labelText = isError 
+          ? `⚠️ CORREÇÃO IA: ${visionAnalysis.status}`
+          : `✓ VISÃO IA: ${visionAnalysis.detectedObjects[0] || 'NOMINAL'}`;
+        ctx.fillText(labelText, x + 6, y - 8);
       }
     };
 
     drawAR();
 
     return () => cancelAnimationFrame(frameId);
-  }, [arOverlayType, showAROverlay]);
+  }, [arOverlayType, showAROverlay, visionAnalysis]);
 
   // Capture Photo Snapshot
   const captureSnapshot = () => {
@@ -240,8 +232,6 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       ctx.fillStyle = '#10b981';
       ctx.font = '600 18px Outfit, sans-serif';
       ctx.fillText('REGISTRO DE MANUTENÇÃO', 200, 170);
-      ctx.font = '14px Inter, sans-serif';
-      ctx.fillText(`Passo: ${arOverlayType}`, 240, 205);
     }
 
     const dataUrl = canvas.toDataURL('image/png');
@@ -257,10 +247,24 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Retículo AR</h2>
+          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Scanner IA ao Vivo</h2>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Toggle Vision AI Scanner */}
+          <button
+            onClick={() => {
+              soundFX.playClick();
+              setIsVisionAIScanning(!isVisionAIScanning);
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              isVisionAIScanning ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'border-white/5 text-slate-400'
+            }`}
+          >
+            <Scan className={`w-3.5 h-3.5 ${isVisionAIScanning ? 'animate-pulse' : ''}`} />
+            <span>{isVisionAIScanning ? 'Scanner IA Ativo' : 'Scanner Pausado'}</span>
+          </button>
+
           <button 
             onClick={() => setShowAROverlay(!showAROverlay)}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
@@ -309,6 +313,27 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
           height={360} 
           className="absolute inset-0 w-full h-full pointer-events-none z-10"
         />
+
+        {/* Live Vision AI Alert Banner Overlay */}
+        {visionAnalysis && visionAnalysis.instruction && (
+          <div className={`absolute top-3 left-3 right-3 z-30 px-3.5 py-2 rounded-xl backdrop-blur-md border text-xs flex items-center justify-between transition-all ${
+            visionAnalysis.correctionRequired
+              ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 animate-pulse'
+              : 'bg-slate-900/90 border-emerald-500/40 text-emerald-300'
+          }`}>
+            <div className="flex items-center gap-2">
+              {visionAnalysis.correctionRequired ? (
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              ) : (
+                <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
+              )}
+              <span className="font-medium">{visionAnalysis.instruction}</span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">
+              {Math.round(visionAnalysis.confidence * 100)}% Conf.
+            </span>
+          </div>
+        )}
 
         {/* Mic Audio Spectrum Overlay Bar */}
         <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
