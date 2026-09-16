@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles, Scan, AlertTriangle, Cpu, Target, Sliders } from 'lucide-react';
+import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles, Scan, AlertTriangle, Cpu, Sliders } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
 import { analyzeLiveVisionFrame } from '../services/geminiVisionService';
 import { speechService } from '../services/speechService';
 
-export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicActive }) {
+export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicActive, onAutoAdvanceStep }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const micCanvasRef = useRef(null);
@@ -24,11 +24,14 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const animFrameRef = useRef(null);
+  
   const lastSpokenInstructionRef = useRef('');
+  const hasAutoAdvancedRef = useRef(false);
 
-  // Reset last spoken instruction when step changes
+  // Reset flags when step changes
   useEffect(() => {
     lastSpokenInstructionRef.current = '';
+    hasAutoAdvancedRef.current = false;
   }, [currentStepId]);
 
   // Start Camera
@@ -60,7 +63,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     };
   }, []);
 
-  // Continuous Live Vision AI Scanner (Runs every 3.5 seconds)
+  // Continuous Live Vision AI Scanner & Vision-Driven Auto Step Advancer
   useEffect(() => {
     let timer = null;
 
@@ -82,15 +85,26 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       const frameDataUrl = canvas.toDataURL('image/jpeg', 0.7);
       const analysis = await analyzeLiveVisionFrame(frameDataUrl, currentStepId, sensitivity);
       
-      // Override valve position if manually adjusted by user
       if (manualValvePos) {
         analysis.valvePoint = manualValvePos;
       }
 
       setVisionAnalysis(analysis);
 
-      // Only speak if correction is required AND it hasn't been spoken yet for this alert!
-      if (analysis && analysis.correctionRequired && analysis.instruction !== lastSpokenInstructionRef.current) {
+      // Vision-driven Auto Step Progression:
+      if (analysis && analysis.stepCompleted && !hasAutoAdvancedRef.current) {
+        hasAutoAdvancedRef.current = true;
+        soundFX.playSuccess();
+        speechService.speak(analysis.instruction);
+
+        // Auto advance to next step after brief voice announcement delay
+        setTimeout(() => {
+          if (onAutoAdvanceStep) {
+            onAutoAdvanceStep();
+          }
+        }, 3200);
+      } 
+      else if (analysis && analysis.correctionRequired && analysis.instruction !== lastSpokenInstructionRef.current) {
         lastSpokenInstructionRef.current = analysis.instruction;
         soundFX.playAlert();
         speechService.speak(analysis.instruction);
@@ -99,13 +113,13 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
 
     if (isVisionAIScanning) {
       runVisionScan();
-      timer = setInterval(runVisionScan, 3500);
+      timer = setInterval(runVisionScan, 4000);
     }
 
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isVisionAIScanning, currentStepId, hasCamera, sensitivity, manualValvePos]);
+  }, [isVisionAIScanning, currentStepId, hasCamera, sensitivity, manualValvePos, onAutoAdvanceStep]);
 
   // Setup Microphone Visualizer Spectrum Canvas
   useEffect(() => {
@@ -182,18 +196,21 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
         const { x, y, width, height } = visionAnalysis.boundingBox;
         const isError = visionAnalysis.correctionRequired;
 
-        // Bounding Box for Bike Wheel Rim
         ctx.strokeStyle = isError ? '#f43f5e' : '#10b981';
         ctx.lineWidth = isError ? 3 : 2;
         ctx.strokeRect(x, y, width, height);
 
-        // Header Tag: Wheel Enclosure
         ctx.fillStyle = isError ? '#f43f5e' : '#10b981';
         ctx.fillRect(x, y - 22, width, 22);
 
         ctx.fillStyle = '#ffffff';
         ctx.font = '600 11px Inter, sans-serif';
-        ctx.fillText(isError ? `⚠️ ENQUADRAMENTO DA RODA` : `✓ RODA DETECTADA (98% CONF)`, x + 6, y - 6);
+        const tagText = visionAnalysis.stepCompleted
+          ? `✓ PASSO ${currentStepId} IDENTIFICADO PELA IA (AVANÇANDO...)`
+          : isError
+            ? `⚠️ CORREÇÃO IA NECESSÁRIA`
+            : `✓ RODA E VÁLVULA EM ANÁLISE`;
+        ctx.fillText(tagText, x + 6, y - 6);
 
         // High-Precision Valve Focal Crosshair
         const vp = visionAnalysis.valvePoint || { x: x + width / 2, y: y + height * 0.75 };
@@ -217,7 +234,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     drawAR();
 
     return () => cancelAnimationFrame(frameId);
-  }, [arOverlayType, showAROverlay, visionAnalysis]);
+  }, [arOverlayType, showAROverlay, visionAnalysis, currentStepId]);
 
   // Click on viewport canvas to manually align valve reticle
   const handleCanvasClick = (e) => {
@@ -265,7 +282,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Scanner de Roda</h2>
+          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão IA & Avanço Automático por Câmera</h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -351,15 +368,19 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
           className="absolute inset-0 w-full h-full pointer-events-none z-10"
         />
 
-        {/* Live Vision AI Alert Banner Overlay */}
+        {/* Live Vision AI Alert / Confirmation Banner Overlay */}
         {visionAnalysis && visionAnalysis.instruction && (
           <div className={`absolute top-3 left-3 right-3 z-30 px-3.5 py-2 rounded-xl backdrop-blur-md border text-xs flex items-center justify-between transition-all ${
-            visionAnalysis.correctionRequired
-              ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 animate-pulse'
-              : 'bg-slate-900/90 border-emerald-500/40 text-emerald-300'
+            visionAnalysis.stepCompleted
+              ? 'bg-emerald-950/90 border-emerald-500/60 text-emerald-300 shadow-lg'
+              : visionAnalysis.correctionRequired
+                ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 animate-pulse'
+                : 'bg-slate-900/90 border-emerald-500/40 text-emerald-300'
           }`}>
             <div className="flex items-center gap-2">
-              {visionAnalysis.correctionRequired ? (
+              {visionAnalysis.stepCompleted ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              ) : visionAnalysis.correctionRequired ? (
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
               ) : (
                 <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -394,7 +415,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
 
       {/* Manual Reticle Reset Helper */}
       <div className="flex items-center justify-between text-xs text-slate-400 px-1 font-sans">
-        <span>💡 Clique no vídeo se desejar fixar a mira da Válvula manualmente.</span>
+        <span>💡 A Visão IA avança o passo automaticamente assim que identificar o gesto/posição.</span>
         {manualValvePos && (
           <button 
             onClick={() => setManualValvePos(null)}

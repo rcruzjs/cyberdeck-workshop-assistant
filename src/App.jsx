@@ -130,6 +130,7 @@ export default function App() {
               currentStepId={currentStep.id}
               onCapturePhoto={handleCapturePhoto}
               isMicActive={isMicActive}
+              onAutoAdvanceStep={handleNextStep}
             />
 
             <HandsFreePanel 
@@ -193,7 +194,7 @@ export default function App() {
 
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
                 <Sparkles className="w-4 h-4 animate-pulse" />
-                <span>VISÃO COMPUTACIONAL IA & ANÁLISE AO VIVO ATIVAS</span>
+                <span>AVANÇO AUTOMÁTICO GUIADO POR VISÃO COMPUTACIONAL ATIVO</span>
               </div>
             </div>
           </div>
