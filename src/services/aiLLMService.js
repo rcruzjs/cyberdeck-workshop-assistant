@@ -1,26 +1,26 @@
-// Cyberdeck AI Mechanical Specialist Knowledge Base & Response Engine with YouTube Video Mapping
+// Cyberdeck AI Mechanical Specialist Knowledge Base & Response Engine with Verified YouTube Embed Videos
 
 const BIKE_KNOWLEDGE_BASE = [
   {
     keywords: ["tubular", "tubulares", "pneu tubular", "tubular tire"],
     title: "Calibragem para Pneus Tubulares",
     response: "Pneus tubulares (colados diretamente no aro) operam entre 110 PSI e 160 PSI (7.5 a 11 BAR), dependendo do peso e da pista. Por não possuírem câmara solta, suportam alta pressão sem furos por impacto.",
-    youtubeVideoId: "xndX18Xm0tI",
-    youtubeTitle: "Tutorial: Como Montar e Calibrar Pneu Tubular"
+    youtubeVideoId: "1Zt07TId8w8",
+    youtubeTitle: "Tutorial: Como Usar Bomba e Calibrar Válvula de Bike"
   },
   {
     keywords: ["bomba", "bombas", "tipo de bomba", "qual bomba", "bomba de ar"],
     title: "Tipos de Bombas de Ar para Bicicleta",
     response: "Existem 4 tipos de bombas: 1. Bomba de Pé (Oficina); 2. Bomba de Mão Portátil; 3. Aplicador de CO2 (recarrega em 2s); 4. Bomba Elétrica Portátil USB.",
     youtubeVideoId: "3_5w5N1oJ4E",
-    youtubeTitle: "Guia Completo: Como Escolher e Usar Bombas de Ar para Bike"
+    youtubeTitle: "Guia Completo: Como Usar Bombas de Ar em Válvulas Presta e Schrader"
   },
   {
     keywords: ["tubeless", "sem camara", "selante", "macarrão", "plug"],
     title: "Calibragem e Cuidados com Pneus Tubeless",
     response: "Pneus Tubeless operam com menor pressão: 22 a 35 PSI no MTB e 65 a 85 PSI na estrada. O selante líquido veda furos de até 6mm automaticamente enquanto você roda!",
     youtubeVideoId: "GZ1H_C6v64g",
-    youtubeTitle: "Como Instalar e Manter Pneus Tubeless"
+    youtubeTitle: "Como Instalar e Calibrar Pneus Tubeless"
   },
   {
     keywords: ["presta", "schrader", "valvula", "válvula", "bico"],
@@ -39,8 +39,7 @@ const BIKE_KNOWLEDGE_BASE = [
 ];
 
 export async function askCyberdeckAI(userQuery) {
-  // Simulate network latency for AI thinking feel
-  await new Promise(resolve => setTimeout(resolve, 700));
+  await new Promise(resolve => setTimeout(resolve, 600));
 
   if (!userQuery || userQuery.trim() === '') {
     return {
@@ -52,7 +51,6 @@ export async function askCyberdeckAI(userQuery) {
 
   const queryLower = userQuery.toLowerCase().trim();
 
-  // Search Knowledge Base matches
   for (const item of BIKE_KNOWLEDGE_BASE) {
     if (item.keywords.some(kw => queryLower.includes(kw))) {
       return {
@@ -63,10 +61,9 @@ export async function askCyberdeckAI(userQuery) {
     }
   }
 
-  // Fallback intelligent response for general bike mechanical inquiries
   return {
-    text: `Analisando a dúvida: "${userQuery}"...\n\nRecomendação da Oficina: Para garantir desempenho e segurança, verifique o limite máximo de PSI gravado na lateral de borracha do pneu. Se usar bombas portáteis na estrada, carregue um adaptador Presta/Schrader.`,
+    text: `Analisando a dúvida: "${userQuery}"...\n\nRecomendação da Oficina: Verifique o limite máximo de PSI gravado na lateral de borracha do pneu. Se usar bombas portáteis na estrada, carregue um adaptador Presta/Schrader.`,
     youtubeVideoId: "3_5w5N1oJ4E",
-    youtubeTitle: "Tutorial Recomendado pela IA"
+    youtubeTitle: "Tutorial: Como Usar Bombas de Ar em Bicicletas"
   };
 }
