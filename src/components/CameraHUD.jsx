@@ -35,7 +35,7 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
     } catch (err) {
       console.warn("Câmera não encontrada ou acesso negado:", err);
       setHasCamera(false);
-      setCameraError("Feed simulado de oficina ativo");
+      setCameraError("Modo de simulação ativo");
     }
   };
 
@@ -79,10 +79,7 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
 
           for (let i = 0; i < bufferLength; i++) {
             const barHeight = (dataArray[i] / 255) * canvas.height;
-            const greenVal = Math.min(255, dataArray[i] * 2);
-            ctx.fillStyle = `rgba(0, ${greenVal}, 255, 0.8)`;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = '#00f3ff';
+            ctx.fillStyle = `rgba(16, 185, 129, ${Math.max(0.3, dataArray[i] / 255)})`;
             ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
             x += barWidth;
           }
@@ -104,7 +101,7 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
     };
   }, [isMicActive]);
 
-  // Render AR Overlay graphics on top of video feed for Bike Tire Inflation
+  // Render Clean AR Overlay graphics
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -121,110 +118,101 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
       const h = canvas.height;
       const now = Date.now() * 0.002;
 
-      // Base Reticle Crosshair
-      ctx.strokeStyle = '#00f3ff';
-      ctx.lineWidth = 2;
+      // Base Reticle Crosshair - Minimalist thin lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(w / 2, h / 2, 40 + Math.sin(now) * 4, 0, Math.PI * 2);
+      ctx.arc(w / 2, h / 2, 35, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(w / 2 - 60, h / 2);
-      ctx.lineTo(w / 2 - 20, h / 2);
-      ctx.moveTo(w / 2 + 20, h / 2);
-      ctx.lineTo(w / 2 + 60, h / 2);
-      ctx.moveTo(w / 2, h / 2 - 60);
-      ctx.lineTo(w / 2, h / 2 - 20);
-      ctx.moveTo(w / 2, h / 2 + 20);
-      ctx.lineTo(w / 2, h / 2 + 60);
+      ctx.moveTo(w / 2 - 45, h / 2);
+      ctx.lineTo(w / 2 - 15, h / 2);
+      ctx.moveTo(w / 2 + 15, h / 2);
+      ctx.lineTo(w / 2 + 45, h / 2);
+      ctx.moveTo(w / 2, h / 2 - 45);
+      ctx.lineTo(w / 2, h / 2 - 15);
+      ctx.moveTo(w / 2, h / 2 + 15);
+      ctx.lineTo(w / 2, h / 2 + 45);
       ctx.stroke();
 
       // Step-Specific AR Overlays
       if (arOverlayType === 'VALVE_SEARCH') {
-        // Target circle over bike valve stem
-        ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(w / 2, h / 2 + 40, 50, 0, Math.PI * 2);
+        ctx.arc(w / 2, h / 2 + 40, 45, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.fillStyle = '#00ff66';
-        ctx.font = '14px Orbitron';
-        ctx.fillText('ALVO AR: ENQUADRAR VÁLVULA DA BICICLETA (POSIÇÃO 6H)', w / 2 - 200, h / 2 - 60);
+        ctx.fillStyle = '#10b981';
+        ctx.font = '500 13px Outfit, sans-serif';
+        ctx.fillText('Alvo AR: Enquadrar Válvula', w / 2 - 80, h / 2 - 55);
       } 
       else if (arOverlayType === 'VALVE_UNSCREW') {
-        // Rotating Arrow indicating unscrewing nut
         ctx.save();
         ctx.translate(w / 2, h / 2);
         ctx.rotate(now * 2);
-        ctx.strokeStyle = '#ffb700';
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(0, 0, 45, 0, Math.PI * 1.5);
+        ctx.arc(0, 0, 40, 0, Math.PI * 1.5);
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = '#ffb700';
-        ctx.font = '14px Orbitron';
-        ctx.fillText('DESROSQUEAR PORCA PRESTA (DESAPERTO ANTI-HORÁRIO)', w / 2 - 210, h / 2 - 70);
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '500 13px Outfit, sans-serif';
+        ctx.fillText('Desrosquear Porca Presta (Anti-horário)', w / 2 - 110, h / 2 - 60);
       }
       else if (arOverlayType === 'PUMP_ATTACH') {
-        // Downward Arrow for pushing nozzle onto valve stem
-        const arrowY = h / 2 - 40 + Math.sin(now * 5) * 10;
-        ctx.strokeStyle = '#00f3ff';
-        ctx.fillStyle = '#00f3ff';
-        ctx.lineWidth = 4;
+        const arrowY = h / 2 - 35 + Math.sin(now * 4) * 8;
+        ctx.strokeStyle = '#06b6d4';
+        ctx.fillStyle = '#06b6d4';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(w / 2, arrowY);
-        ctx.lineTo(w / 2, arrowY + 40);
-        ctx.lineTo(w / 2 - 15, arrowY + 25);
-        ctx.moveTo(w / 2, arrowY + 40);
-        ctx.lineTo(w / 2 + 15, arrowY + 25);
+        ctx.lineTo(w / 2, arrowY + 35);
+        ctx.lineTo(w / 2 - 12, arrowY + 22);
+        ctx.moveTo(w / 2, arrowY + 35);
+        ctx.lineTo(w / 2 + 12, arrowY + 22);
         ctx.stroke();
 
-        ctx.font = '14px Orbitron';
-        ctx.fillText('PRESSIONAR BICO DA BOMBA ATÉ O FUNDO E LEVANTAR ALAVANCA', w / 2 - 240, h / 2 - 80);
+        ctx.font = '500 13px Outfit, sans-serif';
+        ctx.fillText('Encaixar Bico da Bomba e Travar Alavanca', w / 2 - 125, h / 2 - 70);
       }
       else if (arOverlayType === 'PSI_GAUGE') {
-        // Animated Gauge Dial Arc
         const startAngle = Math.PI * 0.85;
         const endAngle = Math.PI * 2.15;
         const currentAngle = startAngle + (endAngle - startAngle) * (0.5 + Math.sin(now) * 0.2);
 
-        // Track Arc
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.2)';
-        ctx.lineWidth = 12;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 8;
         ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 70, startAngle, endAngle);
+        ctx.arc(w / 2, h / 2, 60, startAngle, endAngle);
         ctx.stroke();
 
-        // Filled Pressure Arc
-        ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 12;
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 8;
         ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 70, startAngle, currentAngle);
+        ctx.arc(w / 2, h / 2, 60, startAngle, currentAngle);
         ctx.stroke();
 
         const psiVal = Math.round(30 + (currentAngle - startAngle) * 45);
-        ctx.fillStyle = '#00ff66';
-        ctx.font = '22px Orbitron';
+        ctx.fillStyle = '#10b981';
+        ctx.font = '600 20px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${psiVal} PSI`, w / 2, h / 2 + 8);
-        ctx.font = '12px Share Tech Mono';
-        ctx.fillText('MONITORANDO PRESSÃO DE AR', w / 2, h / 2 + 30);
+        ctx.fillText(`${psiVal} PSI`, w / 2, h / 2 + 6);
         ctx.textAlign = 'left';
       }
       else if (arOverlayType === 'VALVE_LOCK' || arOverlayType === 'TIRE_CHECK') {
-        // Green Check Ring around wheel
-        ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 80, 0, Math.PI * 2);
+        ctx.arc(w / 2, h / 2, 70, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.fillStyle = '#00ff66';
-        ctx.font = '16px Orbitron';
-        ctx.fillText('✓ VEDAÇÃO E PRESSÃO DO PNEU CONFIRMADAS', w / 2 - 180, h / 2 - 90);
+        ctx.fillStyle = '#10b981';
+        ctx.font = '500 14px Outfit, sans-serif';
+        ctx.fillText('✓ Vedação e Pressão Validadas', w / 2 - 95, h / 2 - 80);
       }
     };
 
@@ -247,16 +235,13 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
     if (hasCamera && videoRef.current) {
       ctx.drawImage(videoRef.current, 0, 0, 640, 360);
     } else {
-      // Draw simulated camera view
-      ctx.fillStyle = '#0a1128';
+      ctx.fillStyle = '#111827';
       ctx.fillRect(0, 0, 640, 360);
-      ctx.fillStyle = '#00f3ff';
-      ctx.font = '20px Orbitron';
-      ctx.fillText('CYBERDECK BIKE WORKSHOP SNAPSHOT', 100, 160);
-      ctx.fillStyle = '#00ff66';
-      ctx.fillText(`Passo AR: ${arOverlayType}`, 180, 200);
-      ctx.font = '14px Share Tech Mono';
-      ctx.fillText(`DATA: ${new Date().toLocaleString()}`, 200, 240);
+      ctx.fillStyle = '#10b981';
+      ctx.font = '600 18px Outfit, sans-serif';
+      ctx.fillText('REGISTRO DE MANUTENÇÃO', 200, 170);
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillText(`Passo: ${arOverlayType}`, 240, 205);
     }
 
     const dataUrl = canvas.toDataURL('image/png');
@@ -267,30 +252,28 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
   };
 
   return (
-    <div className="cyber-panel p-4 flex flex-col gap-3 relative">
+    <div className="cyber-panel p-5 flex flex-col gap-4">
       {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
-          <Camera className="w-5 h-5 text-cyan-400 glow-cyan" />
-          <h2 className="text-sm font-bold tracking-wider text-cyan-400">FEED DA CÂMERA & OVERLAY AR DA VÁLVULA</h2>
+          <Camera className="w-4 h-4 text-emerald-400" />
+          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Retículo AR</h2>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Toggle AR Overlays */}
           <button 
             onClick={() => setShowAROverlay(!showAROverlay)}
-            className={`px-2 py-1 rounded text-xs font-mono border flex items-center gap-1 transition-all ${
-              showAROverlay ? 'border-cyan-400 text-cyan-300 bg-cyan-950/60' : 'border-slate-700 text-slate-500'
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              showAROverlay ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-white/5 text-slate-400'
             }`}
           >
             {showAROverlay ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span>OVERLAY AR</span>
+            <span>Overlay AR</span>
           </button>
 
-          {/* Camera Refresh */}
           <button 
             onClick={startCamera}
-            className="p-1.5 rounded border border-slate-700 text-slate-400 hover:text-cyan-400 hover:border-cyan-500 transition-all"
+            className="p-1.5 rounded-lg border border-white/5 text-slate-400 hover:text-white transition-all"
             title="Reiniciar Câmera"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -298,14 +281,12 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
         </div>
       </div>
 
-      {/* Camera Viewport with AR Layer */}
-      <div className="relative w-full aspect-video bg-slate-950 rounded border border-cyan-500/30 overflow-hidden flex items-center justify-center">
-        {/* Flash Effect on capture */}
+      {/* Camera Viewport */}
+      <div className="relative w-full aspect-video bg-slate-900 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center">
         {flashEffect && (
           <div className="absolute inset-0 bg-white z-50 animate-ping opacity-80" />
         )}
 
-        {/* Real Video Stream */}
         {hasCamera ? (
           <video 
             ref={videoRef} 
@@ -315,18 +296,13 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          /* Simulated Feed Fallback */
-          <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-            <div className="absolute inset-0 scanline-overlay" />
-            <div className="w-32 h-32 rounded-full border border-cyan-500/30 flex items-center justify-center radar-spinner mb-4">
-              <Sparkles className="w-8 h-8 text-cyan-400 animate-pulse" />
-            </div>
-            <p className="text-cyan-400 font-heading text-sm mb-1 glow-cyan">MODO OFICINA BIKE - CÂMERA SIMULADA</p>
-            <p className="text-xs text-slate-400 font-mono">{cameraError || 'Aguardando inicialização do sensor...'}</p>
+          <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+            <Sparkles className="w-8 h-8 text-emerald-400 animate-pulse mb-2" />
+            <p className="text-slate-200 font-medium text-sm">Câmera Simulada Ativa</p>
+            <p className="text-xs text-slate-400 mt-1">{cameraError || 'Aguardando sensor...'}</p>
           </div>
         )}
 
-        {/* AR Canvas Overlay Layer */}
         <canvas 
           ref={canvasRef} 
           width={640} 
@@ -335,31 +311,31 @@ export function CameraHUD({ arOverlayType, onCapturePhoto, isMicActive }) {
         />
 
         {/* Mic Audio Spectrum Overlay Bar */}
-        <div className="absolute bottom-2 left-2 z-20 bg-slate-950/80 px-3 py-1.5 rounded border border-cyan-500/30 flex items-center gap-2">
-          <span className="text-[10px] font-mono text-cyan-400">SPECTRUM MIC:</span>
-          <canvas ref={micCanvasRef} width={120} height={20} className="w-28 h-5" />
+        <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
+          <span className="text-[11px] text-slate-400 font-medium">Mic:</span>
+          <canvas ref={micCanvasRef} width={100} height={16} className="w-24 h-4" />
         </div>
 
         {/* Snapshot Quick Trigger Button */}
         <button
           onClick={captureSnapshot}
-          className="absolute bottom-3 right-3 z-20 cyber-btn cyber-btn-green py-2 px-3 text-xs shadow-[0_0_15px_rgba(0,255,102,0.4)]"
-          title="Tirar Foto da Válvula/Pneu (Voz: 'CAPTURAR')"
+          className="absolute bottom-3 right-3 z-20 cyber-btn cyber-btn-green py-1.5 px-3 text-xs shadow-lg"
+          title="Tirar Foto (Voz: 'CAPTURAR')"
         >
-          <Aperture className="w-4 h-4 animate-spin-slow" />
-          <span>CAPTURAR FOTO</span>
+          <Aperture className="w-3.5 h-3.5" />
+          <span>Capturar Foto</span>
         </button>
       </div>
 
-      {/* Snapshot Preview Thumbnail if taken */}
+      {/* Snapshot Preview Thumbnail */}
       {lastSnap && (
-        <div className="flex items-center gap-3 bg-slate-950/60 p-2 rounded border border-emerald-500/30">
-          <img src={lastSnap} alt="Snapshot" className="w-16 h-10 object-cover rounded border border-emerald-400" />
+        <div className="flex items-center gap-3 bg-slate-900/60 p-2.5 rounded-xl border border-emerald-500/20">
+          <img src={lastSnap} alt="Snapshot" className="w-14 h-9 object-cover rounded-lg border border-emerald-500/30" />
           <div>
-            <div className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> REGISTRO DE CALIBRAGEM SALVO!
+            <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Foto Salva no Relatório
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">Incluso no Relatório da Bicicleta</div>
+            <div className="text-[11px] text-slate-400">Disponível no Certificado Final</div>
           </div>
         </div>
       )}
