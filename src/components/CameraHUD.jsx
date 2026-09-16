@@ -52,7 +52,14 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     };
   }, []);
 
-  // Continuous Live Vision AI Scanner (Runs every 3 seconds)
+  const lastSpokenInstructionRef = useRef('');
+
+  // Reset last spoken instruction when step changes
+  useEffect(() => {
+    lastSpokenInstructionRef.current = '';
+  }, [currentStepId]);
+
+  // Continuous Live Vision AI Scanner (Runs every 3.5 seconds)
   useEffect(() => {
     let timer = null;
 
@@ -75,8 +82,9 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       const analysis = await analyzeLiveVisionFrame(frameDataUrl, currentStepId);
       setVisionAnalysis(analysis);
 
-      // If an error or correction is detected, speak correction voice guidance automatically!
-      if (analysis && analysis.correctionRequired) {
+      // Only speak if correction is required AND it hasn't been spoken yet for this alert!
+      if (analysis && analysis.correctionRequired && analysis.instruction !== lastSpokenInstructionRef.current) {
+        lastSpokenInstructionRef.current = analysis.instruction;
         soundFX.playAlert();
         speechService.speak(analysis.instruction);
       }
