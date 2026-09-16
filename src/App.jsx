@@ -9,6 +9,7 @@ import { VisualGuidePanel } from './components/VisualGuidePanel';
 import { HandsFreePanel } from './components/HandsFreePanel';
 import { DiagnosticPanel } from './components/DiagnosticPanel';
 import { AIChatPanel } from './components/AIChatPanel';
+import { YouTubePlayerPanel } from './components/YouTubePlayerPanel';
 import { GalleryModal } from './components/GalleryModal';
 import { FolderCheck, RotateCcw, Sparkles } from 'lucide-react';
 
@@ -21,6 +22,12 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [photos, setPhotos] = useState([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  // Active YouTube Video state recommended by LLM
+  const [activeYouTubeVideo, setActiveYouTubeVideo] = useState({
+    id: "3_5w5N1oJ4E",
+    title: "Tutorial: Como Usar Bombas de Ar em Válvula Presta e Schrader"
+  });
 
   const currentStep = STEPS_DATA[currentStepIndex];
 
@@ -106,6 +113,10 @@ export default function App() {
     }
   };
 
+  const handleSelectYouTubeVideo = (id, title) => {
+    setActiveYouTubeVideo({ id, title });
+  };
+
   return (
     <div className="min-h-screen p-3 md:p-6 flex flex-col justify-between relative overflow-hidden selection:bg-emerald-500 selection:text-white">
       {/* Main Container */}
@@ -147,8 +158,17 @@ export default function App() {
             <DiagnosticPanel />
           </div>
 
-          {/* Right Column: Visual Video Guide, AI Chat Panel & Step Instructions (7 cols) */}
+          {/* Right Column: Visual Video Guide, YouTube LLM Video Player & AI Chat Panel (7 cols) */}
           <div className="lg:col-span-7 flex flex-col gap-4 justify-between">
+            {/* Embedded YouTube Video Panel (Determined by LLM) */}
+            {activeYouTubeVideo && activeYouTubeVideo.id && (
+              <YouTubePlayerPanel 
+                youtubeVideoId={activeYouTubeVideo.id}
+                youtubeTitle={activeYouTubeVideo.title}
+                onClose={() => setActiveYouTubeVideo({ id: null, title: null })}
+              />
+            )}
+
             {/* Visual Step Video Panel */}
             <VisualGuidePanel 
               stepId={currentStep.id} 
@@ -156,7 +176,10 @@ export default function App() {
             />
 
             {/* AI Mechanical Specialist Chat Panel (LLM) */}
-            <AIChatPanel isMicActive={isMicActive} />
+            <AIChatPanel 
+              isMicActive={isMicActive} 
+              onSelectYouTubeVideo={handleSelectYouTubeVideo}
+            />
 
             {/* Step Guide Component */}
             <StepGuide 
@@ -194,7 +217,7 @@ export default function App() {
 
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
                 <Sparkles className="w-4 h-4 animate-pulse" />
-                <span>AVANÇO AUTOMÁTICO GUIADO POR VISÃO COMPUTACIONAL ATIVO</span>
+                <span>PLAYER YOUTUBE DE TUTORIAIS DA IA INTEGRADO</span>
               </div>
             </div>
           </div>

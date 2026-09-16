@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Bot, Send, VolumeX, HelpCircle, Loader2, User } from 'lucide-react';
+import { Bot, Send, VolumeX, HelpCircle, Loader2, User, Video } from 'lucide-react';
 import { askCyberdeckAI } from '../services/aiLLMService';
 import { speechService } from '../services/speechService';
 import { soundFX } from '../services/audioFX';
 
-export function AIChatPanel({ isMicActive }) {
+export function AIChatPanel({ isMicActive, onSelectYouTubeVideo }) {
   const [messages, setMessages] = useState([
     {
       sender: 'ai',
-      text: 'Olá! Sou o Assistente IA Especialista de Oficina. Faça qualquer pergunta sobre calibragem de pneus (tubulares, tubeless, clincher), bombas de ar ou manutenção!'
+      text: 'Olá! Sou o Assistente IA Especialista de Oficina. Faça qualquer pergunta sobre calibragem de pneus (tubulares, tubeless, clincher) ou bombas. Eu recomendarei o vídeo tutorial ideal no YouTube!'
     }
   ]);
   const [inputQuery, setInputQuery] = useState('');
@@ -28,11 +28,22 @@ export function AIChatPanel({ isMicActive }) {
     try {
       const aiResponse = await askCyberdeckAI(query);
       soundFX.playSuccess();
-      const aiMsg = { sender: 'ai', text: aiResponse };
+      
+      const aiMsg = { 
+        sender: 'ai', 
+        text: aiResponse.text,
+        youtubeVideoId: aiResponse.youtubeVideoId,
+        youtubeTitle: aiResponse.youtubeTitle
+      };
+      
       setMessages(prev => [...prev, aiMsg]);
       setIsThinking(false);
 
-      speechService.speak(aiResponse, () => setIsSpeakingAI(false));
+      if (aiResponse.youtubeVideoId && onSelectYouTubeVideo) {
+        onSelectYouTubeVideo(aiResponse.youtubeVideoId, aiResponse.youtubeTitle);
+      }
+
+      speechService.speak(aiResponse.text, () => setIsSpeakingAI(false));
       setIsSpeakingAI(true);
     } catch (err) {
       setIsThinking(false);
@@ -55,7 +66,7 @@ export function AIChatPanel({ isMicActive }) {
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <Bot className="w-4 h-4 text-indigo-400" />
-          <h2 className="text-sm font-semibold text-slate-200 font-heading">Consultor IA de Mecânica</h2>
+          <h2 className="text-sm font-semibold text-slate-200 font-heading">Consultor IA de Mecânica & Vídeos YouTube</h2>
         </div>
 
         {isSpeakingAI && (
@@ -70,7 +81,7 @@ export function AIChatPanel({ isMicActive }) {
       </div>
 
       {/* Chat Messages */}
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 min-h-[220px] max-h-[300px] overflow-y-auto flex flex-col gap-3 font-sans text-xs">
+      <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 min-h-[200px] max-h-[280px] overflow-y-auto flex flex-col gap-3 font-sans text-xs">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -90,6 +101,21 @@ export function AIChatPanel({ isMicActive }) {
               }`}
             >
               {msg.text}
+
+              {/* YouTube Video Recommendation Button */}
+              {msg.youtubeVideoId && (
+                <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                    <Video className="w-3.5 h-3.5 text-red-500" /> {msg.youtubeTitle}
+                  </span>
+                  <button
+                    onClick={() => onSelectYouTubeVideo && onSelectYouTubeVideo(msg.youtubeVideoId, msg.youtubeTitle)}
+                    className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500 hover:text-white text-[10px] font-medium transition-all"
+                  >
+                    Assistir no Player 📺
+                  </button>
+                </div>
+              )}
             </div>
 
             {msg.sender === 'user' && (
@@ -103,7 +129,7 @@ export function AIChatPanel({ isMicActive }) {
         {isThinking && (
           <div className="flex items-center gap-2 text-indigo-400 text-xs py-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="animate-pulse">Consultando especialista IA...</span>
+            <span className="animate-pulse">Consultando especialista IA e buscando vídeo no YouTube...</span>
           </div>
         )}
       </div>
@@ -118,21 +144,21 @@ export function AIChatPanel({ isMicActive }) {
           onClick={() => handleQuickPrompt("Qual a calibragem dos pneus tubulares?")}
           className="px-2.5 py-1 rounded-lg bg-slate-800/60 border border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs"
         >
-          Pneus Tubulares (PSI)
+          Pneus Tubulares (Vídeo)
         </button>
 
         <button
           onClick={() => handleQuickPrompt("Quais tipos de bomba devo usar?")}
           className="px-2.5 py-1 rounded-lg bg-slate-800/60 border border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs"
         >
-          Tipos de Bombas
+          Tipos de Bombas (Vídeo)
         </button>
 
         <button
           onClick={() => handleQuickPrompt("Qual a calibragem para pneu Tubeless?")}
           className="px-2.5 py-1 rounded-lg bg-slate-800/60 border border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs"
         >
-          Pressão Tubeless
+          Pressão Tubeless (Vídeo)
         </button>
       </div>
 

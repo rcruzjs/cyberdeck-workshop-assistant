@@ -1,39 +1,53 @@
-// Cyberdeck AI Mechanical Specialist Knowledge Base & Response Engine
+// Cyberdeck AI Mechanical Specialist Knowledge Base & Response Engine with YouTube Video Mapping
 
 const BIKE_KNOWLEDGE_BASE = [
   {
     keywords: ["tubular", "tubulares", "pneu tubular", "tubular tire"],
     title: "Calibragem para Pneus Tubulares",
-    response: "Pneus tubulares (colados diretamente no aro, comuns em ciclismo de estrada profissional e pista) operam com pressões mais altas, variando entre 110 PSI e 160 PSI (7.5 a 11 BAR), dependendo do peso do ciclista e da superfície da pista. Como não possuem câmara tradicional exposta às bordas do aro, eles suportam altíssima pressão com menor risco de furos por impacto."
+    response: "Pneus tubulares (colados diretamente no aro) operam entre 110 PSI e 160 PSI (7.5 a 11 BAR), dependendo do peso e da pista. Por não possuírem câmara solta, suportam alta pressão sem furos por impacto.",
+    youtubeVideoId: "xndX18Xm0tI",
+    youtubeTitle: "Tutorial: Como Montar e Calibrar Pneu Tubular"
   },
   {
     keywords: ["bomba", "bombas", "tipo de bomba", "qual bomba", "bomba de ar"],
     title: "Tipos de Bombas de Ar para Bicicleta",
-    response: "Existem 4 tipos principais de bombas:\n1. Bomba de Pé (Oficina): Possui manômetro analógico/digital grande, câmara de ar dupla e permite inflar rápido até 160 PSI.\n2. Bomba de Mão Portátil: Leve e fixada no quadro da bike para emergências na estrada.\n3. Aplicador de CO2: Usa cartuchos de gás comprimido de 16g ou 25g para inflar o pneu em 2 segundos durante provas.\n4. Bomba Elétrica Portátil: Recarregável via USB com calibrador automático digital."
+    response: "Existem 4 tipos de bombas: 1. Bomba de Pé (Oficina); 2. Bomba de Mão Portátil; 3. Aplicador de CO2 (recarrega em 2s); 4. Bomba Elétrica Portátil USB.",
+    youtubeVideoId: "3_5w5N1oJ4E",
+    youtubeTitle: "Guia Completo: Como Escolher e Usar Bombas de Ar para Bike"
   },
   {
     keywords: ["tubeless", "sem camara", "selante", "macarrão", "plug"],
     title: "Calibragem e Cuidados com Pneus Tubeless",
-    response: "Pneus Tubeless (sem câmara de ar, utilizando selante líquido interno) devem rodar com pressões menores que pneus comuns: geralmente entre 22 PSI e 35 PSI no MTB, e 65 a 85 PSI na estrada. A menor pressão aumenta a aderência no solo e o selante veda furos de até 3mm a 6mm automaticamente enquanto você roda!"
+    response: "Pneus Tubeless operam com menor pressão: 22 a 35 PSI no MTB e 65 a 85 PSI na estrada. O selante líquido veda furos de até 6mm automaticamente enquanto você roda!",
+    youtubeVideoId: "GZ1H_C6v64g",
+    youtubeTitle: "Como Instalar e Manter Pneus Tubeless"
   },
   {
     keywords: ["presta", "schrader", "valvula", "válvula", "bico"],
     title: "Diferença entre Válvula Presta e Schrader",
-    response: "• Válvula Presta (Fina/Francesa): Possui porca de trava no topo. Muito usada em bicicletas de estrada e MTB modernas. Requer desrosquear o pino antes de calibrar.\n• Válvula Schrader (Grossa/Automotiva): Mesma válvula usada em carros e motos. Possui pino mola central interno e é mais resistente."
+    response: "• Válvula Presta (Fina/Francesa): Possui porca de trava no topo. Desrosqueie o pino antes de calibrar.\n• Válvula Schrader (Grossa/Automotiva): Mesma usada em carros e motos, com pino mola central.",
+    youtubeVideoId: "1Zt07TId8w8",
+    youtubeTitle: "Como Usar a Bomba em Válvula Presta e Schrader"
   },
   {
     keywords: ["pressao", "pressão", "psi", "bar", "calibrar", "tabela", "peso"],
     title: "Tabela Geral de Calibragem por Categoria",
-    response: "Diretrizes de Pressão (para ciclista de ~75kg):\n• Mountain Bike (Com câmara): 35 - 45 PSI\n• Mountain Bike (Tubeless): 25 - 35 PSI\n• Ciclismo de Estrada (Speed): 90 - 110 PSI\n• Gravel / Urbana: 45 - 65 PSI\n• E-Bike (Elétrica): 45 - 55 PSI (devido ao peso extra do motor/bateria)."
+    response: "Diretrizes de Pressão (~75kg):\n• MTB (Com câmara): 35 - 45 PSI\n• MTB (Tubeless): 25 - 35 PSI\n• Estrada (Speed): 90 - 110 PSI\n• Urbana/Gravel: 45 - 65 PSI",
+    youtubeVideoId: "eqrN-m-V81g",
+    youtubeTitle: "Como Achar a Pressão Certa do Pneu da Bike"
   }
 ];
 
 export async function askCyberdeckAI(userQuery) {
   // Simulate network latency for AI thinking feel
-  await new Promise(resolve => setTimeout(resolve, 800));
+  await new Promise(resolve => setTimeout(resolve, 700));
 
   if (!userQuery || userQuery.trim() === '') {
-    return "Por favor, digite ou fale uma dúvida sobre mecânica, calibragem ou equipamentos de bicicleta.";
+    return {
+      text: "Por favor, digite ou fale uma dúvida sobre mecânica, calibragem ou equipamentos de bicicleta.",
+      youtubeVideoId: null,
+      youtubeTitle: null
+    };
   }
 
   const queryLower = userQuery.toLowerCase().trim();
@@ -41,10 +55,18 @@ export async function askCyberdeckAI(userQuery) {
   // Search Knowledge Base matches
   for (const item of BIKE_KNOWLEDGE_BASE) {
     if (item.keywords.some(kw => queryLower.includes(kw))) {
-      return item.response;
+      return {
+        text: item.response,
+        youtubeVideoId: item.youtubeVideoId,
+        youtubeTitle: item.youtubeTitle
+      };
     }
   }
 
   // Fallback intelligent response for general bike mechanical inquiries
-  return `Analisando a dúvida: "${userQuery}"...\n\nRecomendação da Oficina Cyberdeck: Para garantir o desempenho ideal e segurança, verifique sempre o limite máximo de PSI gravado na lateral de borracha do pneu. Se for utilizar bombas portáteis na estrada, certifique-se de carregar um adaptador de válvula Presta/Schrader. Deseja detalhes sobre calibragem Tubeless, Tubulares ou tipos de manômetro?`;
+  return {
+    text: `Analisando a dúvida: "${userQuery}"...\n\nRecomendação da Oficina: Para garantir desempenho e segurança, verifique o limite máximo de PSI gravado na lateral de borracha do pneu. Se usar bombas portáteis na estrada, carregue um adaptador Presta/Schrader.`,
+    youtubeVideoId: "3_5w5N1oJ4E",
+    youtubeTitle: "Tutorial Recomendado pela IA"
+  };
 }
