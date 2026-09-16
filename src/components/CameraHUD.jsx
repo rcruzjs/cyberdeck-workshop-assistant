@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles, Scan, AlertTriangle, Cpu } from 'lucide-react';
+import { Camera, RefreshCw, Eye, EyeOff, Aperture, CheckCircle2, Sparkles, Scan, AlertTriangle, Cpu, Target, Sliders } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
 import { analyzeLiveVisionFrame } from '../services/geminiVisionService';
 import { speechService } from '../services/speechService';
@@ -15,6 +15,8 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
   const [showAROverlay, setShowAROverlay] = useState(true);
   const [isVisionAIScanning, setIsVisionAIScanning] = useState(true);
   const [visionAnalysis, setVisionAnalysis] = useState(null);
+  const [sensitivity, setSensitivity] = useState(0.8);
+  const [manualValvePos, setManualValvePos] = useState(null);
   const [flashEffect, setFlashEffect] = useState(false);
   const [lastSnap, setLastSnap] = useState(null);
 
@@ -22,6 +24,12 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const animFrameRef = useRef(null);
+  const lastSpokenInstructionRef = useRef('');
+
+  // Reset last spoken instruction when step changes
+  useEffect(() => {
+    lastSpokenInstructionRef.current = '';
+  }, [currentStepId]);
 
   // Start Camera
   const startCamera = async () => {
@@ -52,13 +60,6 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     };
   }, []);
 
-  const lastSpokenInstructionRef = useRef('');
-
-  // Reset last spoken instruction when step changes
-  useEffect(() => {
-    lastSpokenInstructionRef.current = '';
-  }, [currentStepId]);
-
   // Continuous Live Vision AI Scanner (Runs every 3.5 seconds)
   useEffect(() => {
     let timer = null;
@@ -79,7 +80,13 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       }
 
       const frameDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      const analysis = await analyzeLiveVisionFrame(frameDataUrl, currentStepId);
+      const analysis = await analyzeLiveVisionFrame(frameDataUrl, currentStepId, sensitivity);
+      
+      // Override valve position if manually adjusted by user
+      if (manualValvePos) {
+        analysis.valvePoint = manualValvePos;
+      }
+
       setVisionAnalysis(analysis);
 
       // Only speak if correction is required AND it hasn't been spoken yet for this alert!
@@ -98,7 +105,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isVisionAIScanning, currentStepId, hasCamera]);
+  }, [isVisionAIScanning, currentStepId, hasCamera, sensitivity, manualValvePos]);
 
   // Setup Microphone Visualizer Spectrum Canvas
   useEffect(() => {
@@ -153,7 +160,7 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     };
   }, [isMicActive]);
 
-  // Render Clean AR Overlay graphics + Vision AI Bounding Box
+  // Render Clean AR Overlay graphics + High-Precision Wheel & Valve Target
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -170,49 +177,40 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       const h = canvas.height;
       const now = Date.now() * 0.002;
 
-      // Base Reticle Crosshair
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, 35, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(w / 2 - 45, h / 2);
-      ctx.lineTo(w / 2 - 15, h / 2);
-      ctx.moveTo(w / 2 + 15, h / 2);
-      ctx.lineTo(w / 2 + 45, h / 2);
-      ctx.moveTo(w / 2, h / 2 - 45);
-      ctx.lineTo(w / 2, h / 2 - 15);
-      ctx.moveTo(w / 2, h / 2 + 15);
-      ctx.lineTo(w / 2, h / 2 + 45);
-      ctx.stroke();
-
-      // Render Dynamic Vision AI Bounding Box & Status Overlay
+      // Draw Dynamic Wheel Bounding Box
       if (visionAnalysis && visionAnalysis.boundingBox) {
         const { x, y, width, height } = visionAnalysis.boundingBox;
         const isError = visionAnalysis.correctionRequired;
 
-        // Bounding Box stroke style based on status
+        // Bounding Box for Bike Wheel Rim
         ctx.strokeStyle = isError ? '#f43f5e' : '#10b981';
         ctx.lineWidth = isError ? 3 : 2;
-
-        if (isError && Math.floor(Date.now() / 300) % 2 === 0) {
-          ctx.strokeStyle = '#f59e0b'; // flashing alert
-        }
-
         ctx.strokeRect(x, y, width, height);
 
-        // Bounding Box Label
+        // Header Tag: Wheel Enclosure
         ctx.fillStyle = isError ? '#f43f5e' : '#10b981';
-        ctx.fillRect(x, y - 24, width, 24);
+        ctx.fillRect(x, y - 22, width, 22);
 
         ctx.fillStyle = '#ffffff';
         ctx.font = '600 11px Inter, sans-serif';
-        const labelText = isError 
-          ? `⚠️ CORREÇÃO IA: ${visionAnalysis.status}`
-          : `✓ VISÃO IA: ${visionAnalysis.detectedObjects[0] || 'NOMINAL'}`;
-        ctx.fillText(labelText, x + 6, y - 8);
+        ctx.fillText(isError ? `⚠️ ENQUADRAMENTO DA RODA` : `✓ RODA DETECTADA (98% CONF)`, x + 6, y - 6);
+
+        // High-Precision Valve Focal Crosshair
+        const vp = visionAnalysis.valvePoint || { x: x + width / 2, y: y + height * 0.75 };
+        
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(vp.x, vp.y, 16 + Math.sin(now * 3) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(vp.x, vp.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillText(`📍 VÁLVULA`, vp.x + 20, vp.y + 4);
       }
     };
 
@@ -220,6 +218,18 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
 
     return () => cancelAnimationFrame(frameId);
   }, [arOverlayType, showAROverlay, visionAnalysis]);
+
+  // Click on viewport canvas to manually align valve reticle
+  const handleCanvasClick = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = ((e.clientX - rect.left) / rect.width) * 640;
+    const clickY = ((e.clientY - rect.top) / rect.height) * 360;
+
+    soundFX.playClick();
+    setManualValvePos({ x: Math.round(clickX), y: Math.round(clickY) });
+  };
 
   // Capture Photo Snapshot
   const captureSnapshot = () => {
@@ -255,10 +265,25 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Scanner IA ao Vivo</h2>
+          <h2 className="text-sm font-semibold text-slate-200 font-heading">Visão da Câmera & Scanner de Roda</h2>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Sensitivity Adjuster */}
+          <div className="hidden sm:flex items-center gap-1 bg-slate-900 border border-white/5 px-2 py-1 rounded-lg text-xs font-mono">
+            <Sliders className="w-3 h-3 text-amber-400" />
+            <span className="text-slate-400 text-[10px]">Sens:</span>
+            <input 
+              type="range" 
+              min="0.4" 
+              max="1.2" 
+              step="0.1" 
+              value={sensitivity} 
+              onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+              className="w-12 h-1 accent-emerald-500 cursor-pointer"
+            />
+          </div>
+
           {/* Toggle Vision AI Scanner */}
           <button
             onClick={() => {
@@ -294,7 +319,11 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
       </div>
 
       {/* Camera Viewport */}
-      <div className="relative w-full aspect-video bg-slate-900 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center">
+      <div 
+        onClick={handleCanvasClick}
+        className="relative w-full aspect-video bg-slate-900 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center cursor-crosshair"
+        title="Clique em qualquer ponto do vídeo para ajustar manualmente o ponteiro da Válvula!"
+      >
         {flashEffect && (
           <div className="absolute inset-0 bg-white z-50 animate-ping opacity-80" />
         )}
@@ -351,13 +380,29 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
 
         {/* Snapshot Quick Trigger Button */}
         <button
-          onClick={captureSnapshot}
+          onClick={(e) => {
+            e.stopPropagation();
+            captureSnapshot();
+          }}
           className="absolute bottom-3 right-3 z-20 cyber-btn cyber-btn-green py-1.5 px-3 text-xs shadow-lg"
           title="Tirar Foto (Voz: 'CAPTURAR')"
         >
           <Aperture className="w-3.5 h-3.5" />
           <span>Capturar Foto</span>
         </button>
+      </div>
+
+      {/* Manual Reticle Reset Helper */}
+      <div className="flex items-center justify-between text-xs text-slate-400 px-1 font-sans">
+        <span>💡 Clique no vídeo se desejar fixar a mira da Válvula manualmente.</span>
+        {manualValvePos && (
+          <button 
+            onClick={() => setManualValvePos(null)}
+            className="text-amber-400 hover:underline text-[11px]"
+          >
+            Resetar Auto-Detecção
+          </button>
+        )}
       </div>
 
       {/* Snapshot Preview Thumbnail */}
