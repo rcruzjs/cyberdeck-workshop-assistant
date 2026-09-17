@@ -13,10 +13,17 @@ import { AIChatPanel } from './components/AIChatPanel';
 import { YouTubePlayerPanel } from './components/YouTubePlayerPanel';
 import { GalleryModal } from './components/GalleryModal';
 import { EquipmentProfileModal } from './components/EquipmentProfileModal';
+import { TechnicalReportModal } from './components/TechnicalReportModal';
 import { indexedDBService } from './services/indexedDBService';
+import { validateProcedureSchema, saveCustomProcedure, exportProcedureAsJSON, getCustomProcedures } from './services/procedureImporter';
 import { FolderCheck, RotateCcw, Sparkles } from 'lucide-react';
 
 export default function App() {
+  const [proceduresRegistry, setProceduresRegistry] = useState(() => [
+    ...PROCEDURES_REGISTRY,
+    ...getCustomProcedures().filter(c => !PROCEDURES_REGISTRY.some(p => p.id === c.id))
+  ]);
+
   const [activeProcedureId, setActiveProcedureId] = useState(() => storageService.getActiveProcedureId());
   const [currentStepIndex, setCurrentStepIndex] = useState(() => storageService.getActiveStepIndex());
   const [isMicActive, setIsMicActive] = useState(false);
@@ -26,6 +33,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(() => storageService.getSoundEnabled());
   const [photos, setPhotos] = useState(() => storageService.getPhotos());
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isTechnicalReportOpen, setIsTechnicalReportOpen] = useState(false);
 
   // IndexedDB Profile state
   const [isProfilesModalOpen, setIsProfilesModalOpen] = useState(false);
@@ -46,9 +54,43 @@ export default function App() {
     title: "Tutorial: Como Usar Bombas de Ar em Válvula Presta e Schrader"
   });
 
-  const activeProcedure = PROCEDURES_REGISTRY.find(p => p.id === activeProcedureId) || PROCEDURES_REGISTRY[0];
+  const activeProcedure = proceduresRegistry.find(p => p.id === activeProcedureId) || proceduresRegistry[0];
   const stepsData = activeProcedure.steps;
   const currentStep = stepsData[currentStepIndex] || stepsData[0];
+
+  // JSON Import & Export Handlers
+  const handleImportJSON = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result);
+        const validated = validateProcedureSchema(parsed);
+        const updatedList = saveCustomProcedure(validated);
+        
+        setProceduresRegistry(prev => {
+          const filtered = prev.filter(p => p.id !== validated.id);
+          return [...filtered, validated];
+        });
+
+        setActiveProcedureId(validated.id);
+        setCurrentStepIndex(0);
+        soundFX.playSuccess();
+        speechService.speak(`Manual ${validated.title} carregado com sucesso!`);
+      } catch (err) {
+        soundFX.playAlert();
+        alert(`Erro ao importar procedimento JSON: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExportCurrentJSON = () => {
+    soundFX.playClick();
+    exportProcedureAsJSON(activeProcedure);
+  };
 
   // Persist State Updates
   useEffect(() => {
@@ -176,6 +218,9 @@ export default function App() {
           capturedCount={photos.length}
           activeProfile={activeProfile}
           onOpenProfilesModal={() => setIsProfilesModalOpen(true)}
+          proceduresRegistry={proceduresRegistry}
+          onImportJSON={handleImportJSON}
+          onExportCurrentJSON={handleExportCurrentJSON}
         />
 
         {/* Main Workstation Layout */}
@@ -275,6 +320,10 @@ export default function App() {
         photos={photos}
         isOpen={isGalleryOpen}
         onClose={() => setIsGalleryOpen(false)}
+        onOpenTechnicalReport={() => {
+          setIsGalleryOpen(false);
+          setIsTechnicalReportOpen(true);
+        }}
       />
 
       {/* Equipment Profile Manager Modal (IndexedDB) */}
@@ -283,6 +332,16 @@ export default function App() {
         onClose={() => setIsProfilesModalOpen(false)}
         activeProfileId={activeProfile?.id}
         onSelectProfile={(profile) => setActiveProfile(profile)}
+      />
+
+      {/* Official Technical Report Modal (PDF Printable) */}
+      <TechnicalReportModal 
+        isOpen={isTechnicalReportOpen}
+        onClose={() => setIsTechnicalReportOpen(false)}
+        activeProcedure={activeProcedure}
+        activeProfile={activeProfile}
+        photos={photos}
+        currentStepIndex={currentStepIndex}
       />
     </div>
   );

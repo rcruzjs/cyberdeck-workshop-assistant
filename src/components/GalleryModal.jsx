@@ -71,12 +71,25 @@ export function GalleryModal({ photos, isOpen, onClose }) {
           <span className="text-xs text-slate-500 font-mono hidden sm:inline">CYBERDECK WORKSHOP ASSISTANT LOG</span>
           
           <div className="flex items-center gap-2">
+            {props.onOpenTechnicalReport && (
+              <button
+                onClick={() => {
+                  soundFX.playClick();
+                  props.onOpenTechnicalReport();
+                }}
+                className="cyber-btn cyber-btn-green text-xs py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                <span>GERAR RELATÓRIO PDF</span>
+              </button>
+            )}
+
             <button
               onClick={handlePrint}
               className="cyber-btn cyber-btn-secondary text-xs py-1.5 px-3"
             >
               <Printer className="w-4 h-4" />
-              <span>IMPRIMIR RELATÓRIO</span>
+              <span>IMPRIMIR GALERIA</span>
             </button>
             <button
               onClick={() => {

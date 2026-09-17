@@ -1,6 +1,7 @@
 import { STEPS_DATA as BIKE_TIRE_STEPS } from './stepsData';
+import { getCustomProcedures } from './procedureImporter';
 
-export const PROCEDURES_REGISTRY = [
+const SYSTEM_PROCEDURES = [
   {
     id: 'bike_tire_inflation',
     category: 'BICICLETA',
@@ -128,3 +129,11 @@ export const PROCEDURES_REGISTRY = [
     ]
   }
 ];
+
+export function getProceduresRegistry() {
+  const custom = getCustomProcedures();
+  return [...SYSTEM_PROCEDURES, ...custom];
+}
+
+export const PROCEDURES_REGISTRY = getProceduresRegistry();
+

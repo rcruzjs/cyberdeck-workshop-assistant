@@ -20,6 +20,13 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
   const [flashEffect, setFlashEffect] = useState(false);
   const [lastSnap, setLastSnap] = useState(null);
 
+  // Video Recorder State (MediaRecorder API)
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+
   // Audio Analyser for Mic Visualizer
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
@@ -276,6 +283,75 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
     }
   };
 
+  // Toggle Video Session Recording (MediaRecorder API)
+  const toggleVideoRecording = () => {
+    if (isRecordingVideo) {
+      // Stop Recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      setIsRecordingVideo(false);
+      soundFX.playAlert();
+    } else {
+      // Start Recording
+      soundFX.playVoiceConfirm();
+      recordedChunksRef.current = [];
+      
+      let recordStream = stream;
+      if (!recordStream && videoRef.current && videoRef.current.srcObject) {
+        recordStream = videoRef.current.srcObject;
+      }
+
+      if (!recordStream) {
+        alert("Nenhum fluxo de vídeo ativo para gravação.");
+        return;
+      }
+
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : 'video/webm';
+
+        const recorder = new MediaRecorder(recordStream, { mimeType });
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
+          }
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = `Cyberdeck_Sessao_Manutencao_${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        };
+
+        recorder.start(1000);
+        setIsRecordingVideo(true);
+        setRecordingSeconds(0);
+
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingSeconds(prev => prev + 1);
+        }, 1000);
+      } catch (err) {
+        console.error("Erro ao iniciar gravador de vídeo:", err);
+      }
+    }
+  };
+
   return (
     <div className="cyber-panel p-5 flex flex-col gap-4">
       {/* Panel Header */}
@@ -300,6 +376,25 @@ export function CameraHUD({ arOverlayType, currentStepId, onCapturePhoto, isMicA
               className="w-12 h-1 accent-emerald-500 cursor-pointer"
             />
           </div>
+
+          {/* Video Session Recorder (MediaRecorder API) */}
+          <button
+            onClick={toggleVideoRecording}
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono border flex items-center gap-1.5 transition-all ${
+              isRecordingVideo
+                ? 'border-rose-500/80 text-rose-400 bg-rose-950/60 animate-pulse'
+                : 'border-white/10 text-slate-300 hover:text-white bg-slate-900'
+            }`}
+            title={isRecordingVideo ? "Clique para encerrar e baixar o vídeo .webm" : "Gravar Sessão de Vídeo (.webm)"}
+          >
+            <span className={`w-2 h-2 rounded-full ${isRecordingVideo ? 'bg-rose-500 animate-ping' : 'bg-rose-400'}`}></span>
+            <span>
+              {isRecordingVideo 
+                ? `REC ${Math.floor(recordingSeconds / 60).toString().padStart(2, '0')}:${(recordingSeconds % 60).toString().padStart(2, '0')}`
+                : 'REC VÍDEO'
+              }
+            </span>
+          </button>
 
           {/* Toggle Vision AI Scanner */}
           <button

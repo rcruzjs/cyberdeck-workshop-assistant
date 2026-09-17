@@ -55,14 +55,44 @@ export function HeaderHUD({
                   soundFX.playClick();
                   onSelectProcedure(e.target.value);
                 }}
-                className="bg-transparent text-xs text-emerald-300 font-medium focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-emerald-300 font-medium focus:outline-none cursor-pointer max-w-[200px] truncate"
               >
-                {PROCEDURES_REGISTRY.map(proc => (
+                {props.proceduresRegistry ? props.proceduresRegistry.map(proc => (
                   <option key={proc.id} value={proc.id} className="bg-slate-900 text-slate-200">
                     [{proc.category}] {proc.title}
                   </option>
-                ))}
+                )) : (
+                  <option value={activeProcedureId}>[{activeProcedure.category}] {activeProcedure.title}</option>
+                )}
               </select>
+            </div>
+
+            {/* Import / Export JSON Buttons */}
+            <div className="flex items-center gap-1">
+              <label 
+                className="cyber-btn cyber-btn-secondary text-[11px] px-2 py-0.5 cursor-pointer flex items-center gap-1"
+                title="Importar manual em arquivo .JSON"
+              >
+                <span>+ JSON</span>
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    if (props.onImportJSON) props.onImportJSON(e);
+                  }}
+                />
+              </label>
+
+              {props.onExportCurrentJSON && (
+                <button
+                  onClick={props.onExportCurrentJSON}
+                  className="cyber-btn cyber-btn-secondary text-[11px] px-2 py-0.5 flex items-center gap-1"
+                  title="Exportar este procedimento como arquivo .JSON"
+                >
+                  <span>⬇ JSON</span>
+                </button>
+              )}
             </div>
           </div>
 
