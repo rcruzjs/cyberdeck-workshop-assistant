@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Gauge, Activity, Zap, CheckCircle2, RefreshCw, Disc, ShieldCheck } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
 
-export function DiagnosticPanel() {
+export function DiagnosticPanel({ activeProfile }) {
   const [testing, setTesting] = useState(false);
+  const targetPsi = activeProfile?.targetPsi || 42;
+  const targetBar = activeProfile?.targetBar || (targetPsi * 0.0689476).toFixed(1);
+  const valveName = activeProfile?.valveType || 'PRESTA / SCHRADER';
+
   const [results, setResults] = useState({
     status: 'VÁLVULA VEDADA',
-    psi: '42 PSI (2.9 BAR)',
-    valveType: 'PRESTA / SCHRADER OK',
+    psi: `${targetPsi} PSI (${targetBar} BAR)`,
+    valveType: `${valveName} OK`,
     leakRate: '0.0 PSI/min (SEM VAZAMENTO)',
     tireCondition: 'BANDA DE RODAGEM OK',
     seal: 'VEDAÇÃO HERMÉTICA 100%'
@@ -20,14 +24,14 @@ export function DiagnosticPanel() {
     setTimeout(() => {
       soundFX.playSuccess();
       setTesting(false);
-      const randomPSI = 40 + Math.floor(Math.random() * 15);
-      const barVal = (randomPSI * 0.0689476).toFixed(1);
+      const measuredPsi = targetPsi;
+      const barVal = targetBar;
       setResults({
-        status: 'PNEU TOTALMENTE CALIBRADO',
-        psi: `${randomPSI} PSI (${barVal} BAR)`,
-        valveType: 'VÁLVULA DETECTADA',
+        status: 'EQUIPAMENTO TOTALMENTE CALIBRADO',
+        psi: `${measuredPsi} PSI (${barVal} BAR)`,
+        valveType: `VÁLVULA ${valveName} DETECTADA`,
         leakRate: '0.00 PSI/min (PERFEITO)',
-        tireCondition: 'PRESSÃO IDEAL ATINGIDA',
+        tireCondition: 'PRESSÃO ALVO ALCANÇADA',
         seal: 'TRAVA DA VÁLVULA APERTADA'
       });
     }, 1500);

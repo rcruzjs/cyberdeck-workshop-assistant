@@ -12,6 +12,8 @@ import { DiagnosticPanel } from './components/DiagnosticPanel';
 import { AIChatPanel } from './components/AIChatPanel';
 import { YouTubePlayerPanel } from './components/YouTubePlayerPanel';
 import { GalleryModal } from './components/GalleryModal';
+import { EquipmentProfileModal } from './components/EquipmentProfileModal';
+import { indexedDBService } from './services/indexedDBService';
 import { FolderCheck, RotateCcw, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -24,6 +26,19 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(() => storageService.getSoundEnabled());
   const [photos, setPhotos] = useState(() => storageService.getPhotos());
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  // IndexedDB Profile state
+  const [isProfilesModalOpen, setIsProfilesModalOpen] = useState(false);
+  const [activeProfile, setActiveProfile] = useState(null);
+
+  useEffect(() => {
+    // Load default or active profile from IndexedDB on startup
+    indexedDBService.getAllProfiles().then(profiles => {
+      if (profiles && profiles.length > 0) {
+        setActiveProfile(profiles[0]);
+      }
+    }).catch(err => console.warn('Erro ao carregar perfil inicial IndexedDB:', err));
+  }, []);
 
   // Active YouTube Video state recommended by LLM
   const [activeYouTubeVideo, setActiveYouTubeVideo] = useState({
@@ -159,6 +174,8 @@ export default function App() {
           soundEnabled={soundEnabled}
           setSoundEnabled={setSoundEnabled}
           capturedCount={photos.length}
+          activeProfile={activeProfile}
+          onOpenProfilesModal={() => setIsProfilesModalOpen(true)}
         />
 
         {/* Main Workstation Layout */}
@@ -184,7 +201,7 @@ export default function App() {
               onCapturePhoto={handleCapturePhoto}
             />
 
-            <DiagnosticPanel />
+            <DiagnosticPanel activeProfile={activeProfile} />
           </div>
 
           {/* Right Column: Visual Video Guide, YouTube LLM Video Player & AI Chat Panel (7 cols) */}
@@ -258,6 +275,14 @@ export default function App() {
         photos={photos}
         isOpen={isGalleryOpen}
         onClose={() => setIsGalleryOpen(false)}
+      />
+
+      {/* Equipment Profile Manager Modal (IndexedDB) */}
+      <EquipmentProfileModal 
+        isOpen={isProfilesModalOpen}
+        onClose={() => setIsProfilesModalOpen(false)}
+        activeProfileId={activeProfile?.id}
+        onSelectProfile={(profile) => setActiveProfile(profile)}
       />
     </div>
   );

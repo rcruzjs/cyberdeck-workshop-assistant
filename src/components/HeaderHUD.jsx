@@ -118,6 +118,27 @@ export function HeaderHUD({
           </div>
         )}
 
+        {/* PWA Offline Ready Badge */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>OFFLINE READY ⚡</span>
+        </div>
+
+        {/* Equipment Profile IndexedDB Button */}
+        {props.onOpenProfilesModal && (
+          <button
+            onClick={props.onOpenProfilesModal}
+            className="cyber-btn cyber-btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5"
+            title="Gerenciar Perfis de Equipamentos no IndexedDB"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden xl:inline">PERFIL:</span>
+            <span className="text-cyan-300 font-bold truncate max-w-[100px]">
+              {props.activeProfile ? props.activeProfile.name : 'PADRÃO'}
+            </span>
+          </button>
+        )}
+
         {/* Audio FX Toggle */}
         <button 
           onClick={toggleAudio}
