@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { STEPS_DATA } from './services/stepsData';
+import { PROCEDURES_REGISTRY } from './services/proceduresData';
+import { storageService } from './services/storageService';
 import { speechService } from './services/speechService';
 import { soundFX } from './services/audioFX';
 import { HeaderHUD } from './components/HeaderHUD';
@@ -14,13 +15,14 @@ import { GalleryModal } from './components/GalleryModal';
 import { FolderCheck, RotateCcw, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [activeProcedureId, setActiveProcedureId] = useState(() => storageService.getActiveProcedureId());
+  const [currentStepIndex, setCurrentStepIndex] = useState(() => storageService.getActiveStepIndex());
   const [isMicActive, setIsMicActive] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [lastCommand, setLastCommand] = useState(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [photos, setPhotos] = useState([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => storageService.getSoundEnabled());
+  const [photos, setPhotos] = useState(() => storageService.getPhotos());
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   // Active YouTube Video state recommended by LLM
@@ -29,13 +31,38 @@ export default function App() {
     title: "Tutorial: Como Usar Bombas de Ar em Válvula Presta e Schrader"
   });
 
-  const currentStep = STEPS_DATA[currentStepIndex];
+  const activeProcedure = PROCEDURES_REGISTRY.find(p => p.id === activeProcedureId) || PROCEDURES_REGISTRY[0];
+  const stepsData = activeProcedure.steps;
+  const currentStep = stepsData[currentStepIndex] || stepsData[0];
+
+  // Persist State Updates
+  useEffect(() => {
+    storageService.setActiveProcedureId(activeProcedureId);
+  }, [activeProcedureId]);
+
+  useEffect(() => {
+    storageService.setActiveStepIndex(currentStepIndex);
+  }, [currentStepIndex]);
+
+  useEffect(() => {
+    storageService.savePhotos(photos);
+  }, [photos]);
+
+  useEffect(() => {
+    storageService.setSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  // Procedure Switcher
+  const handleSelectProcedure = (newProcedureId) => {
+    setActiveProcedureId(newProcedureId);
+    setCurrentStepIndex(0);
+  };
 
   // Navigation handlers
   const handleNextStep = useCallback(() => {
     soundFX.playSuccess();
-    setCurrentStepIndex(prev => Math.min(prev + 1, STEPS_DATA.length - 1));
-  }, []);
+    setCurrentStepIndex(prev => Math.min(prev + 1, stepsData.length - 1));
+  }, [stepsData.length]);
 
   const handlePrevStep = useCallback(() => {
     soundFX.playClick();
@@ -123,8 +150,10 @@ export default function App() {
       <div className="max-w-[1600px] w-full mx-auto flex flex-col flex-1 z-10">
         {/* Top Header HUD */}
         <HeaderHUD 
+          activeProcedureId={activeProcedureId}
+          onSelectProcedure={handleSelectProcedure}
           currentStep={currentStepIndex + 1}
-          totalSteps={STEPS_DATA.length}
+          totalSteps={stepsData.length}
           isMicActive={isMicActive}
           isSpeaking={isSpeaking}
           soundEnabled={soundEnabled}
@@ -184,7 +213,7 @@ export default function App() {
             {/* Step Guide Component */}
             <StepGuide 
               step={currentStep}
-              totalSteps={STEPS_DATA.length}
+              totalSteps={stepsData.length}
               onNext={handleNextStep}
               onPrev={handlePrevStep}
               isSpeaking={isSpeaking}
@@ -217,7 +246,7 @@ export default function App() {
 
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
                 <Sparkles className="w-4 h-4 animate-pulse" />
-                <span>PLAYER YOUTUBE DE TUTORIAIS DA IA INTEGRADO</span>
+                <span>PLATAFORMA MULTI-PROCEDIMENTOS & PERSISTÊNCIA ATIVAS</span>
               </div>
             </div>
           </div>

@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Disc, Mic, Volume2, VolumeX, ShieldCheck, Camera, Sparkles } from 'lucide-react';
+import { Disc, Mic, Volume2, VolumeX, ShieldCheck, Camera, Layers } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
+import { PROCEDURES_REGISTRY } from '../services/proceduresData';
 
-export function HeaderHUD({ currentStep, totalSteps, isMicActive, isSpeaking, soundEnabled, setSoundEnabled, capturedCount }) {
+export function HeaderHUD({ 
+  activeProcedureId, 
+  onSelectProcedure, 
+  currentStep, 
+  totalSteps, 
+  isMicActive, 
+  isSpeaking, 
+  soundEnabled, 
+  setSoundEnabled, 
+  capturedCount 
+}) {
   const [timeStr, setTimeStr] = useState('');
 
   useEffect(() => {
@@ -22,25 +33,44 @@ export function HeaderHUD({ currentStep, totalSteps, isMicActive, isSpeaking, so
     }
   };
 
+  const activeProcedure = PROCEDURES_REGISTRY.find(p => p.id === activeProcedureId) || PROCEDURES_REGISTRY[0];
+
   return (
     <header className="cyber-panel px-6 py-4 mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-white/10">
-      {/* Left Brand ID */}
+      {/* Left Brand ID & Multi-Procedure Dropdown */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
           <Disc className="w-5 h-5 text-emerald-400 animate-spin-slow" />
         </div>
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold text-slate-100 font-heading tracking-tight">OFICINA VIVA-VOZ</h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20">
-              IA & AR v2.6
-            </span>
+            
+            {/* Multi-Procedure Selector Dropdown */}
+            <div className="relative flex items-center gap-1 bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1">
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <select
+                value={activeProcedureId}
+                onChange={(e) => {
+                  soundFX.playClick();
+                  onSelectProcedure(e.target.value);
+                }}
+                className="bg-transparent text-xs text-emerald-300 font-medium focus:outline-none cursor-pointer"
+              >
+                {PROCEDURES_REGISTRY.map(proc => (
+                  <option key={proc.id} value={proc.id} className="bg-slate-900 text-slate-200">
+                    [{proc.category}] {proc.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5 font-sans">
-            <span>Enchimento e Calibragem de Pneus</span>
+
+          <p className="text-xs text-slate-400 flex items-center gap-2 mt-1 font-sans">
+            <span className="truncate max-w-[320px]">{activeProcedure.description}</span>
             <span className="text-slate-600">•</span>
-            <span className="text-emerald-400 flex items-center gap-1 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" /> Sistema Nominal
+            <span className="text-emerald-400 flex items-center gap-1 font-medium shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" /> Nominal
             </span>
           </p>
         </div>
