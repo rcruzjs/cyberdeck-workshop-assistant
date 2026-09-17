@@ -3,17 +3,23 @@ import { Disc, Mic, Volume2, VolumeX, ShieldCheck, Camera, Layers } from 'lucide
 import { soundFX } from '../services/audioFX';
 import { PROCEDURES_REGISTRY } from '../services/proceduresData';
 
-export function HeaderHUD({ 
-  activeProcedureId, 
-  onSelectProcedure, 
-  currentStep, 
-  totalSteps, 
-  isMicActive, 
-  isSpeaking, 
-  soundEnabled, 
-  setSoundEnabled, 
-  capturedCount 
-}) {
+export function HeaderHUD(props) {
+  const {
+    activeProcedureId, 
+    onSelectProcedure, 
+    currentStep, 
+    totalSteps, 
+    isMicActive, 
+    isSpeaking, 
+    soundEnabled, 
+    setSoundEnabled, 
+    capturedCount,
+    activeProfile,
+    onOpenProfilesModal,
+    proceduresRegistry,
+    onImportJSON,
+    onExportCurrentJSON
+  } = props;
   const [timeStr, setTimeStr] = useState('');
 
   useEffect(() => {
