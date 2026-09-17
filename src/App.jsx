@@ -14,9 +14,11 @@ import { YouTubePlayerPanel } from './components/YouTubePlayerPanel';
 import { GalleryModal } from './components/GalleryModal';
 import { EquipmentProfileModal } from './components/EquipmentProfileModal';
 import { TechnicalReportModal } from './components/TechnicalReportModal';
+import { AnalyticsModal } from './components/AnalyticsModal';
+import { Component3DViewerModal } from './components/Component3DViewerModal';
 import { indexedDBService } from './services/indexedDBService';
 import { validateProcedureSchema, saveCustomProcedure, exportProcedureAsJSON, getCustomProcedures } from './services/procedureImporter';
-import { FolderCheck, RotateCcw, Sparkles } from 'lucide-react';
+import { FolderCheck, RotateCcw, Sparkles, BarChart3, Box } from 'lucide-react';
 
 export default function App() {
   const [proceduresRegistry, setProceduresRegistry] = useState(() => [
@@ -34,6 +36,8 @@ export default function App() {
   const [photos, setPhotos] = useState(() => storageService.getPhotos());
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isTechnicalReportOpen, setIsTechnicalReportOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [is3DViewerOpen, setIs3DViewerOpen] = useState(false);
 
   // IndexedDB Profile state
   const [isProfilesModalOpen, setIsProfilesModalOpen] = useState(false);
@@ -264,6 +268,7 @@ export default function App() {
             <VisualGuidePanel 
               stepId={currentStep.id} 
               stepTitle={currentStep.title} 
+              onOpen3DViewer={() => setIs3DViewerOpen(true)}
             />
 
             {/* AI Mechanical Specialist Chat Panel (LLM) */}
@@ -284,13 +289,37 @@ export default function App() {
 
             {/* Bottom Workstation Bar */}
             <div className="cyber-panel p-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsGalleryOpen(true)}
                   className="cyber-btn cyber-btn-secondary text-xs flex items-center gap-1.5"
                 >
                   <FolderCheck className="w-4 h-4 text-emerald-400" />
                   <span>REGISTRO FOTOGRÁFICO ({photos.length})</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundFX.playClick();
+                    setIsAnalyticsOpen(true);
+                  }}
+                  className="cyber-btn cyber-btn-secondary text-xs flex items-center gap-1.5"
+                  title="Abrir Dashboard Analytics e Histórico do IndexedDB"
+                >
+                  <BarChart3 className="w-4 h-4 text-cyan-400" />
+                  <span>ANALYTICS 📊</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundFX.playClick();
+                    setIs3DViewerOpen(true);
+                  }}
+                  className="cyber-btn cyber-btn-secondary text-xs flex items-center gap-1.5"
+                  title="Inspecionar Modelo 3D 360°"
+                >
+                  <Box className="w-4 h-4 text-emerald-400" />
+                  <span>INSPECIONAR 3D 📐</span>
                 </button>
 
                 <button
@@ -342,6 +371,20 @@ export default function App() {
         activeProfile={activeProfile}
         photos={photos}
         currentStepIndex={currentStepIndex}
+      />
+
+      {/* Workshop Analytics & IndexedDB Metrics Modal */}
+      <AnalyticsModal 
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        photosCount={photos.length}
+      />
+
+      {/* Interactive 3D Component Inspector Modal */}
+      <Component3DViewerModal 
+        isOpen={is3DViewerOpen}
+        onClose={() => setIs3DViewerOpen(false)}
+        componentType={activeProcedure.category === 'ELETRÔNICOS' ? 'SSD' : 'VALVE'}
       />
     </div>
   );

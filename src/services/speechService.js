@@ -10,7 +10,18 @@ class SpeechService {
     this.onCommandCallback = null;
     this.onTranscriptCallback = null;
     this.onListeningChangeCallback = null;
-    this.onSpeakingChangeCallback = null;
+    this.speechRate = parseFloat(localStorage.getItem('cyberdeck_speech_rate') || '1.0');
+    this.speechPitch = parseFloat(localStorage.getItem('cyberdeck_speech_pitch') || '1.0');
+  }
+
+  setRate(rate) {
+    this.speechRate = Math.max(0.7, Math.min(1.8, parseFloat(rate)));
+    localStorage.setItem('cyberdeck_speech_rate', this.speechRate.toString());
+  }
+
+  setPitch(pitch) {
+    this.speechPitch = Math.max(0.7, Math.min(1.5, parseFloat(pitch)));
+    localStorage.setItem('cyberdeck_speech_pitch', this.speechPitch.toString());
   }
 
   // Initialize SpeechRecognition
@@ -130,8 +141,8 @@ class SpeechService {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = this.lang;
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = this.speechRate || 1.0;
+    utterance.pitch = this.speechPitch || 1.0;
 
     // Try finding Portuguese voice
     const voices = this.synth.getVoices();

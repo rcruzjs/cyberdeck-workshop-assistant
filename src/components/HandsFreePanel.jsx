@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Volume2, Timer, Radio, HelpCircle, Activity, Sparkles } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
+import { speechService } from '../services/speechService';
 
 export function HandsFreePanel({ isMicActive, toggleMic, transcript, lastCommand, onNextStep, onPrevStep, onRepeatStep, onCapturePhoto }) {
   const [autoAdvance, setAutoAdvance] = useState(false);
@@ -79,6 +80,39 @@ export function HandsFreePanel({ isMicActive, toggleMic, transcript, lastCommand
               </span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Voice Speed & Pitch Controls */}
+      <div className="bg-slate-950/60 p-3 rounded border border-cyan-500/20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div className="flex items-center gap-2">
+          <Volume2 className="w-4 h-4 text-emerald-400" />
+          <span className="text-slate-300">VELOCIDADE DE VOZ DA IA:</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input 
+            type="range"
+            min="0.7"
+            max="1.5"
+            step="0.1"
+            defaultValue={parseFloat(localStorage.getItem('cyberdeck_speech_rate') || '1.0')}
+            onChange={(e) => {
+              const rate = parseFloat(e.target.value);
+              speechService.setRate(rate);
+            }}
+            className="w-24 h-1.5 accent-emerald-500 cursor-pointer"
+          />
+
+          <button
+            onClick={() => {
+              soundFX.playClick();
+              speechService.speak("Testando velocidade da narração viva voz da oficina.");
+            }}
+            className="cyber-btn cyber-btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1"
+          >
+            <span>TESTAR VOZ 🔊</span>
+          </button>
         </div>
       </div>
 

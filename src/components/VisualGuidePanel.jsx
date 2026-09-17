@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, RotateCcw, Film, Sparkles } from 'lucide-react';
 import { soundFX } from '../services/audioFX';
 
-export function VisualGuidePanel({ stepId, stepTitle }) {
+export function VisualGuidePanel({ stepId, stepTitle, onOpen3DViewer }) {
   const canvasRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -180,15 +180,30 @@ export function VisualGuidePanel({ stepId, stepTitle }) {
           <h2 className="text-sm font-semibold text-slate-200 font-heading">Vídeo Demonstrativo Visual</h2>
         </div>
 
-        <button
-          onClick={() => {
-            soundFX.playClick();
-            setPlaybackSpeed(prev => (prev === 1 ? 0.5 : prev === 0.5 ? 2 : 1));
-          }}
-          className="px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:bg-slate-800 transition-all"
-        >
-          Velocidade: {playbackSpeed}x
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpen3DViewer && (
+            <button
+              onClick={() => {
+                soundFX.playClick();
+                onOpen3DViewer();
+              }}
+              className="px-2.5 py-1 rounded-lg text-xs font-mono border border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60 transition-all flex items-center gap-1"
+              title="Abrir modelo 3D rotacionável em 360°"
+            >
+              <span>INSPECIONAR EM 3D 📐</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              soundFX.playClick();
+              setPlaybackSpeed(prev => (prev === 1 ? 0.5 : prev === 0.5 ? 2 : 1));
+            }}
+            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:bg-slate-800 transition-all"
+          >
+            Velocidade: {playbackSpeed}x
+          </button>
+        </div>
       </div>
 
       {/* Video Viewport Screen */}
